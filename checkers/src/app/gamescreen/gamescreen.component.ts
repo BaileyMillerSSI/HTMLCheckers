@@ -1,5 +1,6 @@
 import { Component, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { GameBlock } from '../models/game-block';
+import { GamePiece } from '../models/game-piece';
 
 @Component({
   selector: 'app-gamescreen',
@@ -42,112 +43,82 @@ export class GamescreenComponent implements AfterViewInit {
   ngAfterViewInit() {
     this.context = (<HTMLCanvasElement>this.board.nativeElement).getContext('2d');
 
-    this.draw();
+    this.draw(true);
   }
 
+  private Test()
+  {
+    this.draw(false);
+  }
 
-  private draw():void
+  private draw(init: boolean):void
   {
     
     this.drawOutline();
 
-    this.drawSpaces();
+    this.drawBlocks();
 
-    this.drawPlayers();
+    this.drawPlayers(init);
   }
 
-  private drawPlayers()
+  private drawPlayers(init: boolean)
   {
+    if (init) {
+      let selectorRange = (this.pieceCount * 2);
+      // First x Pieces
+      let primaryBlock = this.spaces.slice(0, selectorRange).filter(x => x.teamColor === this.secondaryColor);
+      for (let i = 0; i < 12; i++) {
+        this.context.fillStyle = this.primaryColor;
+        let block = primaryBlock[i];
+        let data = block.getCenterPointData();
+        this.context.beginPath();
+        this.context.arc(data.center.x, data.center.y, data.radius, 0, 2 * Math.PI);
+        this.context.fill();
+        block.gamePiece = new GamePiece(data.center.x, data.center.y, data.radius, data.radius);
 
-    let selectorRange = (this.pieceCount*2);
-    // First x Pieces
-    let primaryPieces = this.spaces.slice(0, selectorRange).filter(x=>x.teamColor === this.primaryColor);
-
-    let rowNum = 1;
-
-    // Draw primary pieces
-    this.context.fillStyle = this.primaryColor;
-    for (let w = 0; w < selectorRange/this.gridSize; w++) {
-      
-      for (let h = 0; h < selectorRange; h++) {
-        let baseLine = primaryPieces[0].x + (primaryPieces[0].width/2);
-
-
-        if(w % 2 === 0)
-        {
-          for (let numInRow = 0; numInRow < 4; numInRow++) {
-            this.context.beginPath();
-            this.context.arc(baseLine + (baseLine * (this.pieceCount - (4 * numInRow))) +primaryPieces[0].width,baseLine*rowNum ,primaryPieces[0].width/3,0, 2 * Math.PI);
-            
-            this.context.fill();
-          }
-        }else
-        {
-          for (let numInRow = 0; numInRow < 4; numInRow++) {
-            this.context.beginPath();
-            this.context.arc(baseLine*3 + (baseLine * (this.pieceCount - (4 * numInRow)))-primaryPieces[0].width ,baseLine*rowNum ,primaryPieces[0].width/3,0, 2 * Math.PI);
-            
-            this.context.fill();
-          }
-        }
+        this.updateBlock(block);
       }
 
-      rowNum+=2;
-    }
 
-    // Last x Pieces
-    let secondaryPieces = this.spaces.slice(this.spaces.length-1-selectorRange, this.spaces.length-1).filter(x=>x.teamColor === this.secondaryColor);
-
-    // Draw primary pieces
-    rowNum = 1;
-    this.context.fillStyle = this.primaryColor;
-    for (let w = 0; w < selectorRange/this.gridSize; w++) {
-      
-      for (let h = 0; h < selectorRange; h++) {
-        let baseLine = secondaryPieces[0].x + (secondaryPieces[0].width/2);
-
-        if(w % 2 === 0)
+      // Last x Pieces
+      let secondaryBlocks = this.spaces.slice(this.spaces.length - 1 - selectorRange, this.spaces.length - 1).filter(x => x.teamColor === this.secondaryColor);
+      for (let i = 0; i < 12; i++) {
+        this.context.fillStyle = "gray";
+        const block = secondaryBlocks[i];
+        let data = block.getCenterPointData();
+        this.context.beginPath();
+        this.context.arc(data.center.x, data.center.y, data.radius, 0, 2 * Math.PI);
+        this.context.fill();
+        block.gamePiece = new GamePiece(data.center.x, data.center.y, data.radius, data.radius);
+        this.updateBlock(block);
+      }
+    }else
+    {
+      for (let i = 0; i < this.spaces.length; i++) {
+        const block = this.spaces[i];
+        if(block.gamePiece != null)
         {
-          if (w == 2) {
-            let xAdjustment = 0
-            for (let numInRow = 0; numInRow < 4; numInRow++) {
-              this.context.beginPath();
-              this.context.arc(baseLine - (secondaryPieces[0].width * xAdjustment) - secondaryPieces[0].width, baseLine - secondaryPieces[0].width*2, secondaryPieces[0].width/3, 0, 2 * Math.PI);
-
-              this.context.fill();
-
-              xAdjustment += 2;
-            }
-          } else {
-            let xAdjustment = 0
-            for (let numInRow = 0; numInRow < 4; numInRow++) {
-              this.context.beginPath();
-              this.context.arc(baseLine - (secondaryPieces[0].width * xAdjustment) - secondaryPieces[0].width, baseLine, secondaryPieces[0].width/3, 0, 2 * Math.PI);
-
-              this.context.fill();
-
-              xAdjustment += 2;
-            }
-          }
-        }else
-        {
-          let xAdjustment = 0
-          for (let numInRow = 0; numInRow < 4; numInRow++) {
-            this.context.beginPath();
-            this.context.arc(baseLine - (secondaryPieces[0].width * xAdjustment), baseLine-secondaryPieces[0].height, 23.3, 0, 2 * Math.PI);
-
-            this.context.fill();
-
-            xAdjustment += 2;
-          }
+          this.context.fillStyle = block.teamColor;
+          this.context.beginPath();
+          this.context.arc(block.gamePiece.x, block.gamePiece.y, block.gamePiece.width, 0, 2 * Math.PI);
+          this.context.fill();
         }
       }
-
-      rowNum+=2;
     }
   }
 
-  private drawSpaces()
+  private updateBlock(block: GameBlock) : void
+  {
+    let index = this.spaces.findIndex(v=>v.blockId === block.blockId);
+
+    this.spaces = [
+      ...this.spaces.slice(0, index),
+      block,
+      ...this.spaces.slice(index + 1),
+    ];
+  }
+
+  private drawBlocks()
   {
     let teamId = 0;
 
@@ -157,11 +128,11 @@ export class GamescreenComponent implements AfterViewInit {
     let pSizeW = this.getPieceSize(width, this.gridSize);
     let pSizeH = this.getPieceSize(height, this.gridSize);
 
-    
+    let blockNum = 1;
     for (let w = 0; w < this.gridSize; w++) {
       for (let h = 0; h < this.gridSize; h++) {
         
-        this.spaces.push(new GameBlock(pSizeW*h, pSizeH*w, pSizeW, pSizeH, teamId % 2 === 0? this.primaryColor : this.secondaryColor));
+        this.spaces.push(new GameBlock(pSizeW*h, pSizeH*w, pSizeW, pSizeH, teamId % 2 === 0? this.primaryColor : this.secondaryColor, blockNum));
 
         teamId+=1;
       }
